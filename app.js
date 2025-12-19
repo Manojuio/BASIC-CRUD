@@ -14,8 +14,9 @@ app.use(express.json());
 app.use(logger);
 app.use("/api",userRoutes);
 
-
-
+app.use((err,req,res,next) => {
+    res.status(500).json({"something went wrong":err.message});
+});
 
 
 module.exports =app;
