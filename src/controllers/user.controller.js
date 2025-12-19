@@ -46,3 +46,41 @@ exports.getuserbyid =async (req, res) => {
 
   }
 }
+exports.usrdeletebyid = async (req, res) => {
+  try{
+    const {id}=req.params;
+    const deleteuser = await User.findByIdAndDelete(id);
+    if(!deleteuser){
+      return res.status(404).json({
+        success:true,
+        message: "User not found" });
+    }
+    res.status(200).json({
+      success:true,
+      message: "User deleted successfully"
+    });
+    }
+    catch(error){
+      next(error);
+    }
+
+  }
+  exports.updateuserbyid = async (req, res) => {
+    try{
+      const user = await User.findById(req.params.id);
+      if(!user){
+        return res.status(404).json({ error: "User not found" });
+      }
+      const updatedUser = await User.findByIdAndUpdate(req.params.id,
+         {name:req.body.name}, 
+         {new:true});
+      res.status(200).json({
+        success:true,
+        message: "User updated successfully",
+        updatedUser
+      })
+  }
+  catch(error){
+    next(error);
+  }
+  }
