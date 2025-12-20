@@ -1,4 +1,5 @@
 const User = require("../models/user.model");
+const cookies = require("cookie-parser");
 
 exports.createUser = async (req, res) => {
 
@@ -13,13 +14,19 @@ exports.createUser = async (req, res) => {
       return res.status(400).json({ error: "User already exists" });
     }
     const user = await User.create(req.body);
-    res.status(201).json({
+
+     res.cookie("token",user._id, 
+    {httpOnly:true},
+    {maxAge:60*60*1000});
+
+    return res.status(201).json({
       _id : user._id,
       name : user.name,
       email : user.email,
       createdAt : user.createdAt
      
     });
+   
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -28,7 +35,15 @@ exports.createUser = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find();
-    res.status(200).json(users);
+
+   
+    if(users.length>0){
+      res.cookie("token",users._id, 
+      {httpOnly:true},
+      {maxAge:60*60*1000});
+    }
+     return res.status(200).json(users);
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
