@@ -1,7 +1,6 @@
 const User = require("../models/user.model");
-const cookies = require("cookie-parser");
-const session = require("express-session");
-
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 
 exports.signupUser = async (req, res) => {
@@ -12,12 +11,19 @@ exports.signupUser = async (req, res) => {
     }
     const existingUser = await User.findOne({ email });
     if(existingUser){
-      return res.status(400).json({ error: "User already exists" });
+      return res.status(409).json({ error: "User already exists" });
     }
+   const hashedPassword = await bcrypt.hash(password, 10);
   
-
-    const user = await User.create({name,email,password});
-    res.status(201).json(user);
+    await User.create({
+      name,
+      email,
+      password: hashedPassword,
+    });
+  
+    res.status(201).json({
+      message: "User created successfully",
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -31,20 +37,29 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
     const user = await User.findOne({email});
+
+
     if(!user){
       return res.status(404).json({ error: "User not found" });
     }
-    
-   //const ismatch = await bcrypt.compare(password,user.password);
-    if(user.password !== password){
+
+    const isMatch = await bcrypt.compare(password,user.password);
+    if(!isMatch){
       return res.status(401).json({ error: "Invalid password" });
     }
-   req.session.userId = user._id;
-   res.cookie("token",user._id, 
-    {httpOnly:true,
-    maxAge:60*60*1000});
-   return res.status(200).json({
+
+    
+  const token = jwt.sign(
+    {userId:user._id},
+   process.env.JWT_SECRET,
+   {expiresIn: process.env.JWT_EXPIRES_IN}
+   );
+
+
+    
+    res.status(200).json({
       message: "User logged in successfully",
+      token,
       user:
       {
         _id : user._id,
@@ -53,17 +68,15 @@ exports.loginUser = async (req, res) => {
         createdAt : user.createdAt
       }
     });
+
+
   }catch(error){
       res.status(500).json({ error: error.message });
     }
 };
-exports.logoutUser = (req,res)=>{
-  try{
-    req.session.destroy();
-    res.clearCookie("token");
-    res.status(200).json({message:"User logged out successfully"});
-  }
-  catch(error){
-    res.status(500).json({ message:"user logout failed"});
-  }
+
+exports.logOutUser = (req,res)=>{
+  res.status(200).json({message:"User logged out successfully"});
 }
+
+ 
